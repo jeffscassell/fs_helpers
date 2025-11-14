@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 import re
 from typing import Iterable, Any
