@@ -61,10 +61,9 @@ def progressBar(
     fileSize: int | None = None,
     prefix: str = "Progress",
     suffix: str = "Complete",
-    decimals: int = 1,
-    length: int = 80,
-    empty: str = "-",
-    fill: str = "#",
+    barLength: int = 80,
+    filledCharacter: str = "#",
+    emptyCharacter: str = "-",
 ):
     """
     Accepts an Iterable and yields each element, printing progress as each
@@ -73,13 +72,45 @@ def progressBar(
     there is no way (that I currently know of) to dynamically determine this
     information.
     
+    .. Usage::
+        ```
+        for element in progressBar(iterator):
+            # Do work.
+        ```
+        
+    .. Usage::
+        ```
+        with requests.get(url, stream=True) as response:
+            fileSize = int(response.headers["Content-length"])
+        
+            with open(file, "wb") as outfile:
+                chunkSize = 8192
+                
+                for chunk in progressBar(
+                    response.iter_content(chunk_size=chunkSize),
+                    chunkSize=chunkSize,
+                    fileSize=fileSize
+                ):
+                    outfile.write(chunk)
+        ```
+    
     :param (Iterable) iterable: Object to iterate through until completion.
     :param (int) chunkSize: Intended to be used when downloading a file.\
         The amount that each iteration will account for on the progress bar.\
         `Note: must be used in conjunction with the 'fileSize' parameter if\
         used.`
-    :param (int) fileSize: Intended to be used when downloading a file. The\
-        
+    :param (int) fileSize: Intended to be used when downloading a file. Used\
+        so the bar will fill appropriately. `Note: must be used in conjunction\
+        with the 'chunkSize' parameter if used.`
+    :param str prefix: The text displayed behind the progress bar's rendering.
+    :param str suffix: The text displayed in front of the progress bar's\
+        rendering.
+    :param int barLength: The amount of characters the bar should occupy on\
+        the CLI.
+    :param str filledCharacter: The character used to indicate a filled\
+        portion of the progress bar.
+    :param str emptyCharacter: The character used to indicate an empty\
+        portion of the progress bar.
     """
     
     if fileSize and not chunkSize:
@@ -101,12 +132,15 @@ def progressBar(
     else:
         total = sum(1 for _ in iterable)
     
-    length = length - (len(prefix) + 3) - (len(suffix) + 7)
+    # Subtract the length of each component included within the progress bar.
+    barLength = barLength - (len(prefix) + 3) - 9 - len(suffix)
     
     def printProgressBar(iteration) -> None:
-        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration) / float(total))
-        filledBar = int(length * iteration // total)
-        wholeBar = fill * filledBar + empty * (length - filledBar)
+        # Percent will always occupy 5 at least spaces, with 1 trailing digit.
+        percent = "{0:5.1f}".format(100 * (iteration) / float(total))
+        filledLength = int(barLength * iteration // total)
+        wholeBar = filledCharacter * filledLength + emptyCharacter * \
+            (barLength - filledLength)
         print(f"{prefix}: |{wholeBar}| {percent}% {suffix}", end="\r")
     
     # Create starting progress bar.
@@ -146,10 +180,11 @@ def downloadFile(
         The file that will be saved is: `a_file.mp4`
     
     :param str url: Takes the form: `https://www.domain.com/path/to/a_file.mp4`
-    :param str (optional) filename: `filename` will be converted automatically
-    to the relevant extension based on the file's extension in the URL, e.g., `filename.mp4`.
-    :param str (optional) location: `location` refers to the location that the
-    file will be saved after download. Must be a directory.
+    :param str (optional) filename: `filename` will be converted automatically\
+        to the relevant extension based on the file's extension in the URL,\
+        e.g., `filename.mp4`.
+    :param str | Path (optional) location: `location` refers to the location\
+        that the file will be saved after download. Must be a directory.
     """
     
     if not url:
