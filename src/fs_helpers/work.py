@@ -1,10 +1,12 @@
 from pathlib import Path
 import re
-from typing import Iterable, Any
+from typing import Iterable, TypeVar, Iterator
 
 import requests
 
 
+
+T = TypeVar("T")
 
 def cleanFilename(filename: str) -> str:
     """
@@ -55,7 +57,7 @@ def confirmFilename(filename: str) -> str:
 
 
 def progressBar(
-    iterable: Iterable[Any],
+    iterable: Iterable[T],
     chunkSize: int | None = None,
     fileSize: int | None = None,
     prefix: str = "Progress",
@@ -63,7 +65,7 @@ def progressBar(
     barLength: int = 80,
     filledCharacter: str = "#",
     emptyCharacter: str = "-",
-):
+) -> Iterator[T]:
     """
     Accepts an Iterable and yields each element, printing progress as each
     element is yielded. If used to download a file, use the `chunkSize` and
@@ -192,9 +194,9 @@ def downloadFile(
     if not isinstance(url, str):
         raise TypeError("URL is not of string type")
     
-    # Extract the last segment of the URL (".../path/<some.file.name.ext>")
+    # Extract the last segment of the URL. (".../path/<some.file.name.ext>")
     urlFilename = url.split("/")[-1]
-    # Separate out the file parts (["some", "file", "name"], "ext")
+    # Separate out the file parts. (["some", "file", "name"], "ext")
     *urlFilename, ext = urlFilename.split(".")
     urlFilename = "_".join(urlFilename)
     
@@ -203,12 +205,12 @@ def downloadFile(
     else:
         ext = ""
     
-    # Get the filename from the passed argument if it exists, or use the URL's
+    # Get the filename from the passed argument if it exists, or use the URL's.
     if not filename:
         filename = urlFilename
     filename = cleanFilename(filename)
     
-    # Validate and build file save location
+    # Validate and build file save location.
     if not location:
         location = Path.cwd()
     else:
