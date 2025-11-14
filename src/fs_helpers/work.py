@@ -8,6 +8,38 @@ import requests
 
 T = TypeVar("T")
 
+
+def formatFileSize(
+    bytes: int = 0,
+    file: str | Path | None = None
+) -> str:
+    """
+    Accepts either a file path (str or Path) or bytes (int) and returns
+    a human-readable file size string. If both are provided, bytes takes
+    precedence.
+    """
+    
+    if bytes:
+        total = bytes
+    elif file:
+        file = Path(file)
+        if file.exists():
+            total = file.stat().st_size
+        else:
+            total = 0
+    else:
+        total = 0
+    
+    sizes = "B KiB MiB GiB".split()
+    
+    for i in range(3):  # Example fileSize: 121291539
+        size = total / 1024**i  # 121291539 / 1024 = 118448.768...
+        if len(f"{size:.0f}") < 4:  # if [118448].768... < 4 characters
+            return f"{size:.2f} {sizes[i]}"
+
+    return str(total)
+
+
 def cleanFilename(filename: str) -> str:
     """
     Sanitizes and validates a filename, then returns the result.
@@ -122,14 +154,7 @@ def progressBar(
     
     if fileSize:
         total = fileSize
-        sizes = "KiB MiB GiB".split()
-        
-        # Change the suffix to the file's actual size.
-        for i in range(3):  # Example fileSize: 121291539
-            size = fileSize / 1024**(i+1)  # 121291539 / 1024 = 118448.768...
-            if len(f"{size:.0f}") < 4:  # if [118448].768... < 4 characters
-                suffix = f"{size:.2f} {sizes[i]}"
-                break
+        suffix = formatFileSize(total)
     else:
         total = sum(1 for _ in iterable)
     
