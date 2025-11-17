@@ -127,12 +127,12 @@ def progressBar(
                     outfile.write(chunk)
         ```
     
-    :param (Iterable) iterable: Object to iterate through until completion.
-    :param (int) chunkSize: Intended to be used when downloading a file.\
+    :param Iterable (required) iterable: Object to iterate through until completion.
+    :param int chunkSize: Intended to be used when downloading a file.\
         The amount that each iteration will account for on the progress bar.\
         `Note: must be used in conjunction with the 'fileSize' parameter if\
         used.`
-    :param (int) fileSize: Intended to be used when downloading a file. Used\
+    :param int fileSize: Intended to be used when downloading a file. Used\
         so the bar will fill appropriately. `Note: must be used in conjunction\
         with the 'chunkSize' parameter if used.`
     :param str prefix: The text displayed behind the progress bar's rendering.
@@ -182,7 +182,6 @@ def progressBar(
     
     # Print a newline at progress completion.
     print()
-    ...
 
 
 def downloadFile(
@@ -227,6 +226,9 @@ def downloadFile(
     
     if ext:
         ext = "." + ext
+        
+        if "?" in ext:
+            ext, *_ = ext.split("?")
     else:
         ext = ""
     
@@ -240,7 +242,7 @@ def downloadFile(
         location = Path.cwd()
     else:
         location = Path(location)
-        if not Path(location).exists() or not Path(location).is_dir():
+        if not Path(location).is_dir():
             print("Invalid save location. Defaulting to current directory...")
             location = Path.cwd()
     
