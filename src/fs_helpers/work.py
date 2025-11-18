@@ -9,35 +9,59 @@ import requests
 T = TypeVar("T")
 
 
-def formatFileSize(
-    bytes: int = 0,
-    file: str | Path | None = None
-) -> str:
+def size(
+    input: int | str | Path,
+    pretty: bool = True
+) -> str | int:
     """
-    Accepts either a file path (str or Path) or bytes (int) and returns
-    a human-readable file size string. If both are provided, bytes takes
-    precedence.
+    Accepts either a filesystem path (str or Path) or bytes (int) and by
+    default returns a human-readable file size string. This can be disabled
+    so that it returns an `int` of size in bytes instead.
     """
     
+    if isinstance(input, (str, Path)):
+        path = input
+        bytes = None
+    else:
+        path = None
+        bytes = input
+    
+    BAD_INPUT_VALUE = 0
+    if pretty:
+        BAD_INPUT_VALUE = "0 bytes"
+    
+    # Determine number of bytes we're working with.
     if bytes:
         total = bytes
-    elif file:
-        file = Path(file)
-        if file.exists():
-            total = file.stat().st_size
-        else:
+    elif path:
+        path = Path(path)
+        if path.is_file():
+            total = path.stat().st_size
+        elif path.is_dir():
             total = 0
+            for currentPath, subdirs, files in path.walk():
+                for currentFile in files:
+                    total += (currentPath / currentFile).stat().st_size
+        else:
+            return BAD_INPUT_VALUE
     else:
-        total = 0
+        return BAD_INPUT_VALUE
     
-    sizes = "B KiB MiB GiB".split()
+    if not pretty:
+        return total
     
-    for i in range(3):  # Example fileSize: 121291539
-        size = total / 1024**i  # 121291539 / 1024 = 118448.768...
-        if len(f"{size:.0f}") < 4:  # if [118448].768... < 4 characters
-            return f"{size:.2f} {sizes[i]}"
-
-    return str(total)
+    # Make the output pretty.
+    sizes = "bytes KiB MiB GiB TiB".split()
+    for i in range(len(sizes)):  # Example fileSize: 121291539
+        scaled = total / 1024**i  # 121291539 / 1024 = 118448.768...
+        if len(f"{scaled:.0f}") < 4:  # if [118448].768... < 4 characters
+            number = f"{scaled:.2f}"
+            if number[-3:] == ".00":
+                number = f"{scaled:.0f}"
+            specifier = sizes[i]
+            return f"{number} {specifier}"
+    
+    return f"Could not parse size of: {total}"
 
 
 def cleanFilename(filename: str) -> str:
@@ -76,10 +100,11 @@ def confirmFilename(filename: str) -> str:
     confirm = ""
         
     while confirm.lower() != "y":
-        confirm = input(
-            f"Proposed file name: {filename}\n"
-            f"Accept name? [Y/n]: "
-        ).lower() or "y"
+        print(f"Proposed file name: {filename}")
+        
+        confirm = ""
+        while confirm not in ("y", "n"):
+            confirm = input(f"Accept name? [Y/n]: ").lower() or "y"
 
         if confirm == "n":
             filename = input(f"Enter new file name: ")
@@ -154,17 +179,25 @@ def progressBar(
     
     if fileSize:
         total = fileSize
-        suffix = formatFileSize(total)
+        suffix = str(size(total))
     else:
         total = sum(1 for _ in iterable)
     
     # Subtract the length of each component included within the progress bar.
     barLength = barLength - (len(prefix) + 3) - 9 - len(suffix)
     
-    def printProgressBar(iteration) -> None:
-        # Percent will always occupy 5 at least spaces, with 1 trailing digit.
+    def printProgressBar(iteration, full: bool = False) -> None:
+        # Percent will always occupy at least 5 spaces, with 1 trailing digit.
         percent = "{0:5.1f}".format(100 * (iteration) / float(total))
-        filledLength = int(barLength * iteration // total)
+
+        # Address a bug I'm too lazy to investigate where bar never fills to
+        # 100% at the end.
+        if full:
+            filledLength = barLength
+            percent = 100.0
+        else:
+            filledLength = int(barLength * iteration // total)
+
         wholeBar = filledCharacter * filledLength + emptyCharacter * \
             (barLength - filledLength)
         print(f"{prefix}: |{wholeBar}| {percent}% {suffix}", end="\r")
@@ -179,6 +212,9 @@ def progressBar(
         if chunkSize:
             i *= chunkSize
         printProgressBar(i + 1)
+    
+    # Fix bug so that bar fills 100%
+    printProgressBar(0, True)
     
     # Print a newline at progress completion.
     print()
