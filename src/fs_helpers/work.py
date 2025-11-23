@@ -1,6 +1,7 @@
 from pathlib import Path
 import re
 from typing import Iterable, TypeVar, Iterator
+from zipfile import ZipFile
 
 import requests
 
@@ -61,7 +62,36 @@ def size(
             specifier = sizes[i]
             return f"{number} {specifier}"
     
-    return f"Could not parse size of: {total}"
+    return f"{total:,} bytes"
+
+
+def zipDirectory(
+    source: str | Path,
+    name: str | None = None,
+    destination: str | Path | None = None,
+) -> None:
+    source = Path(source)
+    
+    if not source.exists():
+        raise ValueError(f"Path does not exist: {source}")
+    if not source.is_dir():
+        raise TypeError(f"Path not a directory: {source}")
+    
+    if not name:
+        name = source.stem + ".zip"
+    elif not name.endswith(".zip"):
+        name += ".zip"
+    
+    if destination:
+        destination = Path(destination)
+    if not destination\
+        or not destination.is_dir():
+        destination = source.parent
+    
+    zip = destination / name
+    with ZipFile(zip, "w") as archive:
+        for path in source.rglob("*"):
+            archive.write(path, arcname=path.relative_to(source))
 
 
 def cleanFilename(filename: str) -> str:

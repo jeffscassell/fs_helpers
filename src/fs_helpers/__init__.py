@@ -11,4 +11,5 @@ from .work import (
     downloadFile,
     progressBar,
     size,
+    zipDirectory,
 )
