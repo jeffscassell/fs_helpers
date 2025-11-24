@@ -12,4 +12,5 @@ from .work import (
     progressBar,
     size,
     zipDirectory,
+    unzip,
 )
