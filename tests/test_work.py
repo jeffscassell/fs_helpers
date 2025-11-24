@@ -1,7 +1,13 @@
 import pytest
 from pathlib import Path
+import shutil
 
-from fs_helpers.work import cleanFilename, size, zipDirectory
+from fs_helpers.work import (
+    cleanFilename,
+    size,
+    zipDirectory,
+    unzip,
+)
 
 
 
@@ -42,15 +48,34 @@ def test_clean_filename():
     assert cleanFilename(filename) == "some_illegal_(''')_characters"
 
 
-@pytest.fixture
-def zipDir(resources):
-    return resources / "zip_dir"
+class TestZip:
+
+    ZIPPED_FILE_NAME = "new_name"
+    UNZIPPED_DIR_NAME = "unzipped_dir"
+
+    @pytest.fixture
+    def zipDir(self, resources: Path):
+        yield resources / "zip_dir"
+        zippedFile = resources / f"{self.ZIPPED_FILE_NAME}.zip"
+        if zippedFile.is_file():
+            zippedFile.unlink()
+    
+    @pytest.fixture
+    def zipFile(self, resources: Path):
+        zip = resources / "zip_file.zip"
+        yield zip
+        unzippedDir = zip.with_name(self.UNZIPPED_DIR_NAME)
+        if unzippedDir.is_dir():
+            shutil.rmtree(unzippedDir)
 
 
-def test_zip_directory(zipDir: Path):
-    assert zipDir.is_dir()
-    name = "new_name"
-    zipDirectory(zipDir, name)
-    zipFile = zipDir.with_name(f"{name}.zip")
-    assert zipFile.is_file()
-    zipFile.unlink()
+    def test_zip_directory(self, zipDir: Path):
+        assert zipDir.is_dir()
+        zipFile = zipDirectory(zipDir, self.ZIPPED_FILE_NAME)
+        assert zipFile == zipDir.with_name(f"{self.ZIPPED_FILE_NAME}.zip")
+        assert zipFile.is_file()
+
+    def test_unzip_file(self, zipFile: Path):
+        assert zipFile.is_file()
+        unzip(zipFile, self.UNZIPPED_DIR_NAME)
+        assert zipFile.with_name(self.UNZIPPED_DIR_NAME).is_dir()
