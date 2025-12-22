@@ -159,21 +159,24 @@ def cleanFilename(filename: str) -> str:
     return filename
 
 
-def confirmFilename(filename: str) -> str:
+def confirm(
+    subject: str,
+    message: str | None = None,
+) -> bool:
+    
+    if not message:
+        message = "Proposition"
+    
+    print(f"{message}: {subject}")
+
     confirm = ""
-        
-    while confirm.lower() != "y":
-        print(f"Proposed file name: {filename}")
-        
-        confirm = ""
-        while confirm not in ("y", "n"):
-            confirm = input(f"Accept name? [Y/n]: ").lower() or "y"
+    while confirm not in ("y", "n"):
+        confirm = input(f"Accept? [Y/n]: ").lower() or "y"
 
-        if confirm == "n":
-            filename = input(f"Enter new file name: ")
-            print()
+    if confirm == "n":
+        return False
 
-    return filename
+    return True
 
 
 def progressBar(
@@ -277,7 +280,7 @@ def progressBar(
         printProgressBar(i + 1)
     
     # Fix bug so that bar fills 100%
-    printProgressBar(0, True)
+    printProgressBar(0, full=True)
     
     # Print a newline at progress completion.
     print()

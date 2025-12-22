@@ -7,7 +7,7 @@ operations, like sanitizing filenames and downloading a file from a URL.
 
 from .work import (
     cleanFilename,
-    confirmFilename,
+    confirm,
     downloadFile,
     progressBar,
     size,
