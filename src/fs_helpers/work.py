@@ -15,9 +15,9 @@ def size(
     pretty: bool = True
 ) -> str | int:
     """
-    Accepts either a filesystem path (str or Path) or bytes (int) and by
+    Accepts either a filesystem path or number of bytes and by
     default returns a human-readable file size string. This can be disabled
-    so that it returns an `int` of size in bytes instead.
+    so that it returns the number of bytes instead.
     """
     
     if isinstance(input, (str, Path)):
@@ -245,7 +245,6 @@ def progressBar(
     
     if fileSize:
         total = fileSize
-        suffix = str(size(total))
     else:
         total = sum(1 for _ in iterable)
     
@@ -380,7 +379,8 @@ def downloadFile(
                 for chunk in progressBar(
                     response.iter_content(chunk_size=8192),
                     chunkSize=8192,
-                    fileSize=fileSize
+                    fileSize=fileSize,
+                    suffix=size(fileSize),
                 ):
                     outfile.write(chunk)
 
