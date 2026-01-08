@@ -160,14 +160,13 @@ def cleanFilename(filename: str) -> str:
 
 
 def confirm(
-    subject: str,
     message: str | None = None,
 ) -> bool:
     
     if not message:
-        message = "Proposition"
+        message = "Continuing"
     
-    print(f"{message}: {subject}")
+    print(message)
 
     confirm = ""
     while confirm not in ("y", "n"):
@@ -285,10 +284,34 @@ def progressBar(
     print()
 
 
+def _extractFilenameFromUrl(url: str) -> str:
+    """ Extract the filename (last segment) of a URL; e.g.,
+    `.../some/path/<with.file.name.ext>` """
+
+    # Remove trailing slash if there is one.
+    if url[-1] == "/":
+        url = url[:-1]
+    filename = url.split("/")[-1]
+    return filename
+
+
+def _extractName(filename: str) -> str:
+    return Path(filename).stem
+
+
+def _extractExtension(filename: str) -> str:
+    ext = Path(filename).suffix
+    if "?" in ext:
+        ext, *_ = ext.split("?")
+    return ext
+
+
 def downloadFile(
     url: str,
     filename: str | None = None,
     location: Path | str | None = None,
+    session: requests.Session | None = None,
+    headers: dict[str, str | bytes | None] | None = None,
 ) -> None:
     """
     Download a file at the specified URL, with an optional filename. If no
@@ -313,27 +336,19 @@ def downloadFile(
         that the file will be saved after download. Must be a directory.
     """
     
-    if not url:
-        raise ValueError("Missing URL to download file")
-    
-    if not isinstance(url, str):
-        raise TypeError("URL is not of string type")
-    
-    # Extract the last segment of the URL. (".../path/<some.file.name.ext>")
-    urlFilename = url.split("/")[-1]
-    # Separate out the file parts. (["some", "file", "name"], "ext")
-    *urlFilename, ext = urlFilename.split(".")
-    urlFilename = "_".join(urlFilename)
-    
-    if ext:
-        ext = "." + ext
-        
-        if "?" in ext:
-            ext, *_ = ext.split("?")
+    if not session:
+        handler = requests
     else:
-        ext = ""
+        handler = session
     
-    # Get the filename from the passed argument if it exists, or use the URL's.
+    if not headers:
+        headers = {}
+    
+    extractedFilename = _extractFilenameFromUrl(url)
+    urlFilename = _extractName(extractedFilename)
+    ext = _extractExtension(extractedFilename)
+    
+    # Use the URL's filename if one was not provided at function call.
     if not filename:
         filename = urlFilename
     filename = cleanFilename(filename)
@@ -364,7 +379,7 @@ def downloadFile(
     
     
     try:
-        with requests.get(url, timeout=5, stream=True) as response:
+        with handler.get(url, timeout=5, stream=True, headers=headers) as response:
             
             try:
                 fileSize = int(response.headers["Content-length"])
