@@ -2,7 +2,7 @@ from pathlib import Path
 
 
 
-def size(inputPath: str | Path) -> int:
+def sizei(inputPath: str | Path) -> int:
     """
     Accepts a filesystem path and returns the number of bytes of that path.
     """
@@ -44,7 +44,7 @@ def sizes(input: int | str | Path) -> str:
     if bytes:
         total = bytes
     elif path:
-        total = size(path)
+        total = sizei(path)
     else:
         return BAD_INPUT_VALUE
     

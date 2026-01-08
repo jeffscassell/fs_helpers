@@ -10,7 +10,6 @@ from .work import (
     confirm,
     downloadFile,
     progressBar,
-    zipDirectory,
-    unzip,
 )
-from .size import size, sizes
+from .size import sizei, sizes
+from .zip_directory import zipDirectory, unzip
