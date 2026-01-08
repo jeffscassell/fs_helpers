@@ -5,64 +5,11 @@ from zipfile import ZipFile, is_zipfile
 
 import requests
 
+from .size import sizes
+
 
 
 T = TypeVar("T")
-
-
-def size(
-    input: int | str | Path,
-    pretty: bool = True
-) -> str | int:
-    """
-    Accepts either a filesystem path or number of bytes and by
-    default returns a human-readable file size string. This can be disabled
-    so that it returns the number of bytes instead.
-    """
-    
-    if isinstance(input, (str, Path)):
-        path = input
-        bytes = None
-    else:
-        path = None
-        bytes = input
-    
-    BAD_INPUT_VALUE = 0
-    if pretty:
-        BAD_INPUT_VALUE = "0 bytes"
-    
-    # Determine number of bytes we're working with.
-    if bytes:
-        total = bytes
-    elif path:
-        path = Path(path)
-        if path.is_file():
-            total = path.stat().st_size
-        elif path.is_dir():
-            total = 0
-            for currentPath, subdirs, files in path.walk():
-                for currentFile in files:
-                    total += (currentPath / currentFile).stat().st_size
-        else:
-            return BAD_INPUT_VALUE
-    else:
-        return BAD_INPUT_VALUE
-    
-    if not pretty:
-        return total
-    
-    # Make the output pretty.
-    sizes = "bytes KiB MiB GiB TiB".split()
-    for i in range(len(sizes)):  # Example fileSize: 121291539
-        scaled = total / 1024**i  # 121291539 / 1024 = 118448.768...
-        if len(f"{scaled:.0f}") < 4:  # if [118448].768... < 4 characters
-            number = f"{scaled:.2f}"
-            if number[-3:] == ".00":
-                number = f"{scaled:.0f}"
-            specifier = sizes[i]
-            return f"{number} {specifier}"
-    
-    return f"{total:,} bytes"
 
 
 def zipDirectory(
@@ -395,7 +342,7 @@ def downloadFile(
                     response.iter_content(chunk_size=8192),
                     chunkSize=8192,
                     fileSize=fileSize,
-                    suffix=size(fileSize),
+                    suffix=sizes(fileSize),
                 ):
                     outfile.write(chunk)
 

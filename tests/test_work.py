@@ -2,11 +2,14 @@ import pytest
 from pathlib import Path
 import shutil
 
-from fs_helpers.work import (
+from fs_helpers import (
     cleanFilename,
     size,
+    sizes,
     zipDirectory,
     unzip,
+)
+from fs_helpers.work import (
     _extractFilenameFromUrl,
     _extractName,
     _extractExtension,
@@ -35,12 +38,15 @@ class TestSize:
 
 
     def test_size(self, emptyFile: Path, smallFile: Path, mediumFile: Path):
-        assert size(emptyFile) == "0 bytes"
-        assert size(emptyFile, pretty=False) == 0
-        assert size(smallFile) == "29 bytes"
-        assert size(smallFile, pretty=False) == 29
-        assert size(mediumFile) == "2.10 MiB"
-        assert size(mediumFile, pretty=False) == 2200676
+        assert size(emptyFile) == 0
+        assert size(smallFile) == 29
+        assert size(mediumFile) == 2200676
+
+    def test_sizes(self, emptyFile: Path, smallFile: Path, mediumFile: Path):
+        assert sizes(emptyFile) == "0 bytes"
+        assert sizes(smallFile) == "29 bytes"
+        assert sizes(mediumFile) == "2.10 MiB"
+        ...
 
 
 class TestZip:
