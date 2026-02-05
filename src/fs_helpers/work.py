@@ -1,6 +1,6 @@
 from pathlib import Path
 import re
-from typing import Iterable, TypeVar, Iterator
+from typing import Iterable, TypeVar, Iterator, Any
 
 import requests
 
@@ -195,7 +195,7 @@ def downloadFile(
     filename: str | None = None,
     location: Path | str | None = None,
     session: requests.Session | None = None,
-    headers: dict[str, str | bytes | None] | None = None,
+    headers: dict[str, Any] | None = None,
 ) -> None:
     """
     Download a file at the specified URL, with an optional filename. If no
@@ -264,14 +264,8 @@ def downloadFile(
     
     try:
         with handler.get(url, timeout=5, stream=True, headers=headers) as response:
-            
-            try:
-                fileSize = int(response.headers["Content-length"])
-            except ValueError:
-                fileSize = 0
 
-            if not fileSize >= 0:
-                raise ValueError("URL points to empty file.")
+            fileSize = int(response.headers["Content-length"])
 
             with open(saveLocation, "wb") as outfile:
                 
