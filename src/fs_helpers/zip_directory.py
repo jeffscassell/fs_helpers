@@ -21,18 +21,18 @@ def zipDirectory(
         raise ValueError(f"Path does not exist: {source}")
     if not source.is_dir():
         raise TypeError(f"Path not a directory: {source}")
-    
+
     if not name:
         name = source.stem + ".zip"
     elif not name.endswith(".zip"):
         name += ".zip"
-    
+
     if destination:
         destination = Path(destination)
     if not destination\
         or not destination.is_dir():
         destination = source.parent if not useCwd else Path.cwd()
-    
+
     zip = destination / name
     with ZipFile(zip, "w") as archive:
         for path in source.rglob("*"):
@@ -43,23 +43,36 @@ def zipDirectory(
 def unzip(
     file: str | Path,
     unzippedDirectory: str | Path | None = None,
+    existsOk: bool = False,
 ) -> None:
-    """ Unzip a ZIP `file` and extract to the `unzippedDirectory`. """
+    """
+    Unzip a ZIP `file` and extract to the `unzippedDirectory`.
+    `unzippedDirectory` can be relative or absolute. If relative, it will be
+    unzipped to the same directory as `file`.
     
+    :raises FileExistsError: If the `unzippedDirectory` already exists, and
+    `existsOk` is `False` (default), raises a `FileExistsError`.
+    """
+
     file = Path(file)
     if not file.exists():
         raise FileNotFoundError(f"Path is not a file: {file}")
     if not is_zipfile(file):
         raise TypeError(f"File is not a ZIP: {file}")
-    
+
+    # Make unzippedDirectory safe to work with first: turn it into a Path.
     if unzippedDirectory:
         unzippedDirectory = Path(unzippedDirectory)
     if not unzippedDirectory:
         unzippedDirectory = file.with_suffix("")
-    elif unzippedDirectory.is_dir():
-        raise IsADirectoryError(f"Destination exists: {unzippedDirectory}")
-    elif not unzippedDirectory.is_absolute():
+
+    # Turn it into an absolute path if it isn't yet.
+    if not unzippedDirectory.is_absolute():
         unzippedDirectory = file.parent / unzippedDirectory
-    
+
+    # Then work with a fully qualified Path.
+    if unzippedDirectory.is_dir() and not existsOk:
+        raise FileExistsError(f"Destination exists: {unzippedDirectory}")
+
     with ZipFile(file) as archive:
         archive.extractall(unzippedDirectory)

@@ -7,7 +7,7 @@ from fs_helpers.zip_directory import zipDirectory, unzip
 
 
 
-ZIPPED_FILE_NAME = "new_name"
+ZIPPED_FILE_NAME = "zipped_file"
 UNZIPPED_DIR_NAME = "unzipped_dir"
 
 @pytest.fixture
@@ -25,14 +25,29 @@ def zipFile(resources: Path):
     if unzippedDir.is_dir():
         shutil.rmtree(unzippedDir)
 
+@pytest.fixture
+def existingDirectory(resources: Path):
+    directory = resources / "existingDirectory"
+    directory.mkdir()
+    yield directory
+    if directory.is_dir():
+        shutil.rmtree(directory)
 
-def test_zip_directory(zipDir: Path):
+
+def testZipDirectory(zipDir: Path):
     assert zipDir.is_dir()
     zipFile = zipDirectory(zipDir, ZIPPED_FILE_NAME)
     assert zipFile == zipDir.with_name(f"{ZIPPED_FILE_NAME}.zip")
     assert zipFile.is_file()
 
-def test_unzip_file(zipFile: Path):
+def testUnzipFile(zipFile: Path):
     assert zipFile.is_file()
     unzip(zipFile, UNZIPPED_DIR_NAME)
     assert zipFile.with_name(UNZIPPED_DIR_NAME).is_dir()
+
+def testUnzipToExistingDirectory(zipFile: Path, existingDirectory: Path):
+    assert zipFile.is_file()
+    assert existingDirectory.is_dir()
+    with pytest.raises(FileExistsError):
+        unzip(zipFile, existingDirectory)
+    unzip(zipFile, existingDirectory, existsOk=True)
