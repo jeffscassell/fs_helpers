@@ -1,78 +1,42 @@
 from pathlib import Path
-import re
 from typing import Iterable, TypeVar, Iterator, Any
 
 import requests
 
-from .size import sizes
-
-
+from fs_helpers.size import sizes
+from fs_helpers.filename import Filename
 
 T = TypeVar("T")
 
 
-def cleanFilename(filename: str) -> str:
-    """
-    Sanitizes and validates a filename, then returns the result.
-    
-    :param str filename: Expects a string.
-    :return (str) filename: A sanitized filename.
-    """
-    
-    illegalCharacters = (
-        ":",
-        "^",
-        "@",
-        "<",
-        ">",
-        "?",
-        "*",
-        "|",
-        "/",
-        "\\",
-        "\"",
-        "/",
-    )
+def confirm(message: str | None = None, ) -> bool:
 
-    filename = filename.replace(" ", "_")
-    filename = re.sub("_{2,}", "_", filename)
-    
-    for character in illegalCharacters:
-        filename = filename.replace(character, "")
-    
-    return filename
+   if not message:
+      message = "Continuing"
 
+   print(message)
 
-def confirm(
-    message: str | None = None,
-) -> bool:
-    
-    if not message:
-        message = "Continuing"
-    
-    print(message)
+   confirm = ""
+   while confirm not in ("y", "n"):
+      confirm = input(f"Accept? [Y/n]: ").lower() or "y"
 
-    confirm = ""
-    while confirm not in ("y", "n"):
-        confirm = input(f"Accept? [Y/n]: ").lower() or "y"
+   if confirm == "n":
+      return False
 
-    if confirm == "n":
-        return False
-
-    return True
+   return True
 
 
 def progressBar(
-    iterable: Iterable[T],
-    chunkSize: int | None = None,
-    fileSize: int | None = None,
-    prefix: str = "Progress",
-    suffix: str = "Complete",
-    barLength: int = 80,
-    filledCharacter: str = "#",
-    emptyCharacter: str = "-",
+   iterable: Iterable[T],
+   chunkSize: int | None = None,
+   fileSize: int | None = None,
+   prefix: str = "Progress",
+   suffix: str = "Complete",
+   barLength: int = 80,
+   filledCharacter: str = "#",
+   emptyCharacter: str = "-",
 ) -> Iterator[T]:
-    """
+   """
     Accepts an Iterable and yields each element, printing progress as each
     element is yielded. If used to download a file, use the `chunkSize` and
     `fileSize` parameters so that the progress bar fills appropriately, as
@@ -119,85 +83,85 @@ def progressBar(
     :param str emptyCharacter: The character used to indicate an empty\
         portion of the progress bar.
     """
-    
-    if fileSize and not chunkSize:
-        fileSize = None
-    
-    if chunkSize and not fileSize:
-        chunkSize = None
-    
-    if fileSize:
-        total = fileSize
-    else:
-        total = sum(1 for _ in iterable)
-    
-    # Subtract the length of each component included within the progress bar.
-    barLength = barLength - (len(prefix) + 3) - 9 - len(suffix)
-    
-    def printProgressBar(iteration, full: bool = False) -> None:
-        # Percent will always occupy at least 5 spaces, with 1 trailing digit.
-        percent = "{0:5.1f}".format(100 * (iteration) / float(total))
 
-        # Address a bug I'm too lazy to investigate where bar never fills to
-        # 100% at the end.
-        if full:
-            filledLength = barLength
-            percent = 100.0
-        else:
-            filledLength = int(barLength * iteration // total)
+   if fileSize and not chunkSize:
+      fileSize = None
 
-        wholeBar = filledCharacter * filledLength + emptyCharacter * \
-            (barLength - filledLength)
-        print(f"{prefix}: |{wholeBar}| {percent}% {suffix}", end="\r")
-    
-    # Create starting progress bar.
-    printProgressBar(0)
-    
-    # Update progress bar and return items as work is completed.
-    for i, item in enumerate(iterable):
-        yield item
-        
-        if chunkSize:
-            i *= chunkSize
-        printProgressBar(i + 1)
-    
-    # Fix bug so that bar fills 100%
-    printProgressBar(0, full=True)
-    
-    # Print a newline at progress completion.
-    print()
+   if chunkSize and not fileSize:
+      chunkSize = None
+
+   if fileSize:
+      total = fileSize
+   else:
+      total = sum(1 for _ in iterable)
+
+   # Subtract the length of each component included within the progress bar.
+   barLength = barLength - (len(prefix) + 3) - 9 - len(suffix)
+
+   def printProgressBar(iteration, full: bool = False) -> None:
+      # Percent will always occupy at least 5 spaces, with 1 trailing digit.
+      percent = "{0:5.1f}".format(100 * (iteration) / float(total))
+
+      # Address a bug I'm too lazy to investigate where bar never fills to
+      # 100% at the end.
+      if full:
+         filledLength = barLength
+         percent = 100.0
+      else:
+         filledLength = int(barLength * iteration // total)
+
+      wholeBar = filledCharacter * filledLength + emptyCharacter * \
+          (barLength - filledLength)
+      print(f"{prefix}: |{wholeBar}| {percent}% {suffix}", end="\r")
+
+   # Create starting progress bar.
+   printProgressBar(0)
+
+   # Update progress bar and return items as work is completed.
+   for i, item in enumerate(iterable):
+      yield item
+
+      if chunkSize:
+         i *= chunkSize
+      printProgressBar(i + 1)
+
+   # Fix bug so that bar fills 100%
+   printProgressBar(0, full=True)
+
+   # Print a newline at progress completion.
+   print()
 
 
 def _extractFilenameFromUrl(url: str) -> str:
-    """ Extract the filename (last segment) of a URL; e.g.,
+   """ Extract the filename (last segment) of a URL; e.g.,
     `.../some/path/<with.file.name.ext>` """
 
-    # Remove trailing slash if there is one.
-    if url[-1] == "/":
-        url = url[:-1]
-    filename = url.split("/")[-1]
-    return filename
+   # Remove trailing slash if there is one.
+   if url[-1] == "/":
+      url = url[:-1]
+   filename = url.split("/")[-1]
+   return filename
 
 
 def _extractName(filename: str) -> str:
-    return Path(filename).stem
+   return Path(filename).stem
 
 
 def _extractExtension(filename: str) -> str:
-    ext = Path(filename).suffix
-    if "?" in ext:
-        ext, *_ = ext.split("?")
-    return ext
+   ext = Path(filename).suffix
+   if "?" in ext:
+      ext, *_ = ext.split("?")
+   return ext
 
 
 def downloadFile(
-    url: str,
-    filename: str | None = None,
-    location: Path | str | None = None,
-    session: requests.Session | None = None,
-    headers: dict[str, Any] | None = None,
+   url: str,
+   filename: str | None = None,
+   location: Path | str | None = None,
+   session: requests.Session | None = None,
+   headers: dict[str, Any] | None = None,
 ) -> None:
-    """
+   """
     Download a file at the specified URL, with an optional filename. If no
     filename is given, the filename from the URL is used. The filename is
     automatically sanitized and validated. The location to save the file
@@ -219,66 +183,64 @@ def downloadFile(
     :param str | Path (optional) location: `location` refers to the location\
         that the file will be saved after download. Must be a directory.
     """
-    
-    if not session:
-        handler = requests
-    else:
-        handler = session
-    
-    if not headers:
-        headers = {}
-    
-    extractedFilename = _extractFilenameFromUrl(url)
-    urlFilename = _extractName(extractedFilename)
-    ext = _extractExtension(extractedFilename)
-    
-    # Use the URL's filename if one was not provided at function call.
-    if not filename:
-        filename = urlFilename
-    filename = cleanFilename(filename)
-    
-    # Validate and build file save location.
-    if not location:
-        location = Path.cwd()
-    else:
-        location = Path(location)
-        if not Path(location).is_dir():
-            print("Invalid save location. Defaulting to current directory...")
-            location = Path.cwd()
-    
-    # Prompt for overwrite if file exists.
-    saveLocation = location / f"{filename}{ext}"
-    if saveLocation.exists():
-        
-        confirm = "n"
-        while confirm != "y":
-            confirm = input(
-                f"File exists: {saveLocation}\n"
-                f"Overwrite? [Y/n]: "
-            ).lower() or "y"
-            
-            if confirm == "n":
-                return
-        print()
-    
-    
-    try:
-        with handler.get(url, timeout=5, stream=True, headers=headers) as response:
 
-            fileSize = int(response.headers["Content-length"])
+   if not session:
+      handler = requests
+   else:
+      handler = session
 
-            with open(saveLocation, "wb") as outfile:
-                
-                for chunk in progressBar(
-                    response.iter_content(chunk_size=8192),
-                    chunkSize=8192,
-                    fileSize=fileSize,
-                    suffix=sizes(fileSize),
-                ):
-                    outfile.write(chunk)
+   if not headers:
+      headers = {}
 
-                # shutil.copyfileobj(response.raw, outfile)
-                print(saveLocation)
-    except KeyboardInterrupt:
-        saveLocation.unlink()
-        print()
+   extractedFilename = _extractFilenameFromUrl(url)
+   urlFilename = _extractName(extractedFilename)
+   ext = _extractExtension(extractedFilename)
+
+   # Use the URL's filename if one was not provided at function call.
+   if not filename:
+      filename = urlFilename
+   filename = Filename.clean(filename)
+
+   # Validate and build file save location.
+   if not location:
+      location = Path.cwd()
+   else:
+      location = Path(location)
+      if not Path(location).is_dir():
+         print("Invalid save location. Defaulting to current directory...")
+         location = Path.cwd()
+
+   # Prompt for overwrite if file exists.
+   saveLocation = location / f"{filename}{ext}"
+   if saveLocation.exists():
+
+      confirm = "n"
+      while confirm != "y":
+         confirm = input(f"File exists: {saveLocation}\n"
+                         f"Overwrite? [Y/n]: ").lower() or "y"
+
+         if confirm == "n":
+            return
+      print()
+
+   try:
+      with handler.get(url, timeout=5, stream=True,
+                       headers=headers) as response:
+
+         fileSize = int(response.headers["Content-length"])
+
+         with open(saveLocation, "wb") as outfile:
+
+            for chunk in progressBar(
+                  response.iter_content(chunk_size=8192),
+                  chunkSize=8192,
+                  fileSize=fileSize,
+                  suffix=sizes(fileSize),
+            ):
+               outfile.write(chunk)
+
+            # shutil.copyfileobj(response.raw, outfile)
+            print(saveLocation)
+   except KeyboardInterrupt:
+      saveLocation.unlink()
+      print()
